@@ -33,7 +33,7 @@ namespace FiguresDotStore.Controllers
         }
     }
 
-    public class Position // royks: классы Position и Cart нужны только для маппинга в Order, в принципе, такое бывает иногда (разделение service-level и data-level), но не в данном примере
+    public class Position // royks: классы Position и Cart нужны только для маппинга в Order, в принципе, такое бывает (например, при разделение service-level и data-level), но не в данном примере
     {
         public string Type { get; set; }
 
@@ -53,10 +53,10 @@ namespace FiguresDotStore.Controllers
     {
         public List<Figure> Positions { get; set; }
 
-        public decimal GetTotal() => // royks: непонятно, для чего этот метод
+        public decimal GetTotal() => // royks: непонятно, для чего этот метод, если сумма возвращается при сохранении
             Positions.Select(p => p switch // royks: нет дефолтного значения
                 {
-                    Triangle => (decimal)p.GetArea() * 1.2m,
+                    Triangle => (decimal)p.GetArea() * 1.2m, // royks: скорее всего не выстрелит (хотя бы из-за того, что метод не используется), но как-то слишком смело double к decimal приводится
                     Circle => (decimal)p.GetArea() * 0.9m
                 })
                 .Sum();
