@@ -11,30 +11,30 @@ namespace FiguresDotStore.Controllers
 {
     internal interface IRedisClient
     {
-        int Get(string type); // royks: малопонятные имена методов
-        void Set(string type, int current);
+        int Get(string type);               // royks: малопонятные имена методов (в связке с параметрами и возвращаемыми значениями),
+        void Set(string type, int current); // royks: имеет смысл сделать билдер или устанавливать через какой-нибудь RedisClientСonfig
     }
 
-    public static class FiguresStorage // royks: статический класс просто как набор методов, не вижу причин делать статику
+    public static class FiguresStorage      // royks: статический класс просто как набор методов, не вижу причин делать статику
     {
         // корректно сконфигурированный и готовый к использованию клиент Редиса
         private static IRedisClient RedisClient { get; } // royks: инициализации не вижу, если только принимать ограничения тестовой задачи (комментарий выше)
 
         public static bool CheckIfAvailable(string type, int count) // royks: в данном случае метод не нужен, проверкку на доступность лучше делать при резервировании
         {
-            return RedisClient.Get(type) >= count;
-        }
+            return RedisClient.Get(type) >= count;                  // royks: ну а если вдруг нужен, то имеен смысл валидировать type (не надо, если енам, но в данном случае строка),
+        }                                                           // royks: и count
 
         public static void Reserve(string type, int count) // royks: непонятно, почему тип строкой, имеет смысл написать полноценный сериализатов в енам
         {
-            var current = RedisClient.Get(type); // royks: возможно не хватает транзакционности (по именам методом Get/Set мало понятно, что там происходит)
+            var current = RedisClient.Get(type);           // royks: возможно не хватает транзакционности (по именам методом Get/Set мало понятно, что там происходит)
 
-            RedisClient.Set(type, current - count);
+            RedisClient.Set(type, current - count);        // royks: нужна валидация, что current >= count
         }
     }
 
-    public class Position // royks: классы Position и Cart нужны только для маппинга в Order, в принципе, такое бывает (например, при разделение service-level и data-level), но не в данном примере
-    {
+    public class Position // royks: классы Position и Cart нужны только для маппинга в Order, в принципе, такое бывает (например, при разделение service-level и data-level),
+    {                     // royks: но не в данном примере
         public string Type { get; set; }
 
         public float SideA { get; set; }
@@ -53,16 +53,16 @@ namespace FiguresDotStore.Controllers
     {
         public List<Figure> Positions { get; set; }
 
-        public decimal GetTotal() => // royks: непонятно, для чего этот метод, если сумма возвращается при сохранении
+        public decimal GetTotal() =>       // royks: непонятно, для чего этот метод, если сумма возвращается при сохранении
             Positions.Select(p => p switch // royks: нет дефолтного значения
                 {
-                    Triangle => (decimal)p.GetArea() * 1.2m, // royks: скорее всего не выстрелит (хотя бы из-за того, что метод не используется), но как-то слишком смело double к decimal приводится
-                    Circle => (decimal)p.GetArea() * 0.9m
+                    Triangle => (decimal)p.GetArea() * 1.2m, // royks: скорее всего не выстрелит (хотя бы из-за того, что метод не используется),
+                    Circle => (decimal)p.GetArea() * 0.9m    // royks: но как-то слишком смело double к decimal приводится
                 })
                 .Sum();
     }
 
-    public abstract class Figure // royks: с учётом замечания ниже тут вообще интерфейс напрашивается, а не абстрактный базовый класс
+    public abstract class Figure         // royks: с учётом замечания ниже тут вообще интерфейс напрашивается, а не абстрактный базовый класс
     {
         public float SideA { get; set; } // royks: не надо в базовый класс пихать все возможные свойства из потомков, немасштабируемо, лишние данные в куче мест, по имени не понятно, что хранится
         public float SideB { get; set; }
@@ -81,7 +81,8 @@ namespace FiguresDotStore.Controllers
                 && CheckTriangleInequality(SideB, SideA, SideC)
                 && CheckTriangleInequality(SideC, SideB, SideA))
                 return;
-            throw new InvalidOperationException("Triangle restrictions not met");   // royks: куча похожих исключений для каждой фигуры, нужно сделать базовое, от него наследовать для каждой фигуры, либо параметром фигуру прокидывать
+            throw new InvalidOperationException("Triangle restrictions not met");   // royks: куча похожих исключений для каждой фигуры, нужно сделать базовое,
+                                                                                    // royks: от него наследовать для каждой фигуры, либо параметром тип фигуры прокидывать в конструктор исключения
             // royks: не хватает проверок, например, чтоб стороны не были отрицательными
         }
 
@@ -100,12 +101,12 @@ namespace FiguresDotStore.Controllers
             if (SideA < 0)
                 throw new InvalidOperationException("Square restrictions not met");
 
-            if (SideA != SideB) // royks: проверка была бы не нужна, если стороны квадрата хранили в одно месте (SideA)
+            if (SideA != SideB) // royks: проверка была бы не нужна, если стороны квадрата хранили в одном месте (SideA), само собой, переименовав
                 throw new InvalidOperationException("Square restrictions not met");
             // royks: валидацая [возможно] неполная, нулевая площадь, например
             
-            // royks: вообще, проверки во всех фигурах очень похожие, я бы вынес валидацию в базовый класс (или дефолнтуню реализацию интерфейса),
-            // а переоперелял бы только условия проверки (ниже я сделал переменную в рамках этого метода)
+            // royks: вообще, проверки во всех фигурах очень похожие, я бы вынес валидацию в базовый класс (или дефолнтную реализацию интерфейса),
+            // royks: а переоперелял бы только условия проверки (ниже я сделал переменную в рамках этого метода)
             
             //var conditions = new (Func<bool> condition, bool invalid)[] // bool invalid - это для простоты, можно сюда закинуть подробности, почему валидация не прошла или вообще Action
             //{
@@ -135,7 +136,7 @@ namespace FiguresDotStore.Controllers
     public interface IOrderStorage
     {
         // сохраняет оформленный заказ и возвращает сумму
-        Task<decimal> Save(Order order); // royks: я бы ещё параметром передавал сюда транзакцию или объект unitOfWork (с транзакцией и всеми репозиториями)
+        Task<decimal> Save(Order order); // royks: я бы ещё параметром передавал сюда транзакцию или объект IUnitOfWork (с транзакцией и всеми репозиториями)
     }
 
     [ApiController]
@@ -153,7 +154,7 @@ namespace FiguresDotStore.Controllers
 
         // хотим оформить заказ и получить в ответе его стоимость
         [HttpPost]
-        public async Task<ActionResult> Order(Cart cart)
+        public async Task<ActionResult> Order(Cart cart) // royks: валидация входных параметров в миддлваре, полагаю?
         {
             foreach (var position in cart.Positions)
             {
